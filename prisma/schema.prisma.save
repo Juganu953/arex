@@ -1,0 +1,237 @@
+
+model Agent {
+  id        Int      @id @default(autoincrement())
+  user_id   Int      @unique
+  region    String?
+  level     String?  // bronze, silver, gold, platinum
+  created_at DateTime @default(now())
+
+  user      User     @relation(fields: [user_id], references: [id])
+  referrals Referral[]
+}
+
+model Referral {
+  id             Int      @id @default(autoincrement())
+  referrer_id    Int
+  referred_id    Int?
+  referred_phone String?
+  status         String   @default("pending") // pending, converted, rejected
+  created_at     DateTime @default(now())
+
+  referrer User @relation("Referrer", fields: [referrer_id], references: [id])
+  referred User? @relation("Referred", fields: [referred_id], references: [id])
+}
+
+//////////////////////////////////////////////////////
+// CORPORATE CSR
+//////////////////////////////////////////////////////
+
+model Corporate {
+  id          Int       @id @default(autoincrement())
+  user_id     Int       @unique
+  company_name String
+  sector      String?
+  created_at  DateTime  @default(now())
+
+  user        User      @relation(fields: [user_id], references: [id])
+  csr_projects CSRProject[]
+}
+
+model CSRProject {
+  id            Int       @id @default(autoincrement())
+  corporate_id  Int
+  title         String
+  description   String?
+  budget        Float?
+  status        String    @default("active")
+  created_at    DateTime  @default(now())
+
+  corporate     Corporate @relation(fields: [corporate_id], references: [id])
+  beneficiaries CSRBeneficiary[]
+}
+
+model CSRBeneficiary {
+  id          Int       @id @default(autoincrement())
+  project_id  Int
+  name        String
+  phone       String?
+  category    String?   // farmer, youth, women, PWD, community
+  created_at  DateTime  @default(now())
+
+  project     CSRProject @relation(fields: [project_id], references: [id])
+}
+
+//////////////////////////////////////////////////////
+// FARMERS & AGRICULTURE
+//////////////////////////////////////////////////////
+
+model Farmer {
+  id          Int       @id @default(autoincrement())
+  user_id     Int       @unique
+  farm_size   Float?
+  crop_type   String?
+  location    String?
+  created_at  DateTime  @default(now())
+
+  user        User      @relation(fields: [user_id], references: [id])
+  farm_inputs FarmInput[]
+  harvests    Harvest[]
+}
+
+model FarmInput {
+  id         Int       @id @default(autoincrement())
+  farmer_id  Int
+  name       String
+  quantity   Float?
+  created_at DateTime  @default(now())
+
+  farmer     Farmer    @relation(fields: [farmer_id], references: [id])
+}
+
+model Harvest {
+  id         Int       @id @default(autoincrement())
+  farmer_id  Int
+  crop       String
+  quantity   Float
+  season     String?
+  created_at DateTime  @default(now())
+
+  farmer     Farmer    @relation(fields: [farmer_id], references: [id])
+}
+
+//////////////////////////////////////////////////////
+// COOPERATIVES
+//////////////////////////////////////////////////////
+
+model Cooperative {
+  id          Int       @id @default(autoincrement())
+  user_id     Int       @unique
+  name        String
+  county      String?
+  created_at  DateTime  @default(now())
+
+  user        User      @relation(fields: [user_id], references: [id])
+  members     CooperativeMember[]
+}
+
+model CooperativeMember {
+  id             Int       @id @default(autoincrement())
+  cooperative_id Int
+  name           String
+  phone          String?
+  role           String?   // chair, secretary, treasurer, member
+  created_at     DateTime  @default(now())
+
+  cooperative    Cooperative @relation(fields: [cooperative_id], references: [id])
+}
+
+//////////////////////////////////////////////////////
+// HOUSING
+//////////////////////////////////////////////////////
+
+model HousingUnit {
+  id          Int       @id @default(autoincrement())
+  title       String
+  location    String
+  price       Float
+  status      String    @default("available") // available, booked, sold
+  created_at  DateTime  @default(now())
+
+  bookings    HousingBooking[]
+}
+
+model HousingBooking {
+  id          Int       @id @default(autoincrement())
+  unit_id     Int
+  user_id     Int
+  status      String    @default("pending")
+  created_at  DateTime  @default(now())
+
+  unit        HousingUnit @relation(fields: [unit_id], references: [id])
+  user        User        @relation(fields: [user_id], references: [id])
+}
+
+//////////////////////////////////////////////////////
+// JOBS & EMPLOYMENT
+//////////////////////////////////////////////////////
+
+model Job {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  employer    String?
+  location    String?
+  created_at  DateTime  @default(now())
+
+  applications JobApplication[]
+}
+
+model JobSeeker {
+  id          Int       @id @default(autoincrement())
+  user_id     Int       @unique
+  skills      String?
+  experience  String?
+  created_at  DateTime  @default(now())
+
+  user        User      @relation(fields: [user_id], references: [id])
+  applications JobApplication[]
+}
+
+model JobApplication {
+  id          Int       @id @default(autoincrement())
+  job_id      Int
+  seeker_id   Int
+  status      String    @default("pending")
+  created_at  DateTime  @default(now())
+
+  job         Job        @relation(fields: [job_id], references: [id])
+  seeker      JobSeeker  @relation(fields: [seeker_id], references: [id])
+}
+
+//////////////////////////////////////////////////////
+// MARKETING & FUNNELS
+//////////////////////////////////////////////////////
+
+model Lead {
+  id          Int       @id @default(autoincrement())
+  name        String?
+  phone       String?
+  email       String?
+  source      String?   // agent, website, campaign, referral
+  status      String    @default("new")
+  created_at  DateTime  @default(now())
+}
+
+model Campaign {
+  id          Int       @id @default(autoincrement())
+  name        String
+  channel     String?   // sms, email, social, field
+  budget      Float?
+  created_at  DateTime  @default(now())
+
+  leads       CampaignLead[]
+}
+
+model CampaignLead {
+  id          Int       @id @default(autoincrement())
+  campaign_id Int
+  lead_id     Int
+
+  campaign    Campaign @relation(fields: [campaign_id], references: [id])
+  lead        Lead     @relation(fields: [lead_id], references: [id])
+}
+
+//////////////////////////////////////////////////////
+// PAYMENTS & TRANSACTIONS
+//////////////////////////////////////////////////////
+
+model Transaction {
+  id          Int       @id @default(autoincrement())
+  user_id     Int
+  amount      Float
+  type        String    // payment, commission, csr, housing, job, cooperative
+  reference   String?
+  created_at  DateTime  @default(now())
+
+  user        User      @relation(fields: [user_id], references: [id])
+}
