@@ -1,21 +1,21 @@
-FROM node:20-slim
-
-# Install OpenSSL 3 (required for Prisma on Debian 12)
-RUN apt-get update -y && apt-get install -y openssl
-
+FROM node:18-alpine AS builder
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install
+COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+RUN npm ci
 
 COPY . .
+RUN npx prisma generate && npm run build
 
-# Generate Prisma Client with OpenSSL 3 inside the container
-RUN npx prisma generate
+FROM node:18-alpine AS runner
+WORKDIR /app
 
-# Build TypeScript
-RUN npm run build
+COPY package.json ./
+RUN npm ci --only=production
 
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+
+ENV NODE_ENV=production
 EXPOSE 8080
-
 CMD ["node", "dist/index.js"]
